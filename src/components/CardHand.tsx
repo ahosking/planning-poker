@@ -19,6 +19,8 @@ export function CardHand({
   return (
     <motion.div
       className="flex flex-wrap justify-center gap-2 sm:gap-3 p-4"
+      role="radiogroup"
+      aria-label="Select your vote"
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, type: "spring" }}

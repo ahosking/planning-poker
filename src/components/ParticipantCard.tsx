@@ -20,12 +20,20 @@ export function ParticipantCard({
   const isRevealed = phase === "revealed";
   const label = vote != null ? CARD_LABELS[String(vote)] : null;
 
+  const statusText = isRevealed
+    ? `voted ${label ?? "nothing"}`
+    : hasVoted
+      ? "has voted"
+      : "has not voted";
+
   return (
     <motion.div
       className={cn(
         "flex flex-col items-center gap-2 p-3 rounded-xl transition-colors",
         isMe && "bg-primary/5 ring-1 ring-primary/20"
       )}
+      role="listitem"
+      aria-label={`${name}${isCreator ? " (creator)" : ""}${isMe ? " (you)" : ""}: ${statusText}`}
       layout
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
@@ -37,6 +45,7 @@ export function ParticipantCard({
           "w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold",
           "bg-gradient-to-br from-primary/40 to-primary/20 text-primary-foreground"
         )}
+        aria-hidden="true"
       >
         {name.charAt(0).toUpperCase()}
       </div>
@@ -44,11 +53,11 @@ export function ParticipantCard({
       {/* Name */}
       <span className="text-sm font-medium text-foreground truncate max-w-[80px]">
         {name}
-        {isCreator && " ★"}
+        {isCreator && <span aria-label="creator"> ★</span>}
       </span>
 
       {/* Card */}
-      <div className="perspective-[400px]">
+      <div className="perspective-[400px]" aria-hidden="true">
         <motion.div
           className="relative w-16 h-24"
           animate={{ rotateY: isRevealed && hasVoted ? 0 : 180 }}
