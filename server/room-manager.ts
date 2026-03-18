@@ -62,7 +62,7 @@ export class RoomManager {
     const existing = room.participants.get(socketId);
     if (existing) {
       existing.name = name;
-      return this.sanitizeState(room, { includeHistory: true });
+      return this.sanitizeState(room);
     }
 
     // Leave any previous room first
@@ -86,7 +86,7 @@ export class RoomManager {
     room.participants.set(socketId, participant);
     this.socketToRoom.set(socketId, roomId);
 
-    return this.sanitizeState(room, { includeHistory: true });
+    return this.sanitizeState(room);
   }
 
   castVote(socketId: string, value: CardValue): ClientRoomState | null {
@@ -138,7 +138,7 @@ export class RoomManager {
       timestamp: Date.now(),
     });
 
-    return this.sanitizeState(room, { includeHistory: true });
+    return this.sanitizeState(room);
   }
 
   getHistory(roomId: string): VoteHistoryEntry[] {
@@ -203,7 +203,7 @@ export class RoomManager {
   getClientState(roomId: string): ClientRoomState | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
-    return this.sanitizeState(room, { includeHistory: true });
+    return this.sanitizeState(room);
   }
 
   private getRoomBySocket(socketId: string): RoomState | null {
@@ -212,10 +212,7 @@ export class RoomManager {
     return this.rooms.get(roomId) ?? null;
   }
 
-  sanitizeState(
-    room: RoomState,
-    options?: { includeHistory?: boolean }
-  ): ClientRoomState {
+  sanitizeState(room: RoomState): ClientRoomState {
     const participants: ClientParticipant[] = [];
 
     for (const p of room.participants.values()) {
@@ -234,7 +231,7 @@ export class RoomManager {
       phase: room.phase,
       creatorId: room.creatorId,
       currentLabel: room.currentLabel,
-      history: options?.includeHistory ? room.history : [],
+      history: room.history,
     };
   }
 

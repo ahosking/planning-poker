@@ -21,20 +21,8 @@ function reducer(state: RoomHookState, action: RoomAction): RoomHookState {
       return { ...state, connected: true, error: null };
     case "disconnected":
       return { ...state, connected: false };
-    case "room-state": {
-      // Server sends history only on join/reveal; other events send [].
-      // Preserve existing history when the incoming payload is empty.
-      const incoming = action.payload;
-      const history =
-        incoming.history.length > 0
-          ? incoming.history
-          : (state.roomState?.history ?? []);
-      return {
-        ...state,
-        roomState: { ...incoming, history },
-        error: null,
-      };
-    }
+    case "room-state":
+      return { ...state, roomState: action.payload, error: null };
     case "error":
       return { ...state, error: action.payload };
     case "clear-error":

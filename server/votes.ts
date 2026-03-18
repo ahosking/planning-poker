@@ -15,7 +15,7 @@ export function computeMedian(votes: CardValue[]): MedianResult {
     if (typeof v === "number") numeric.push(v);
   }
   if (numeric.length === 0) return { median: null, consensus: false };
-  const sorted = numeric.sort((a, b) => a - b);
+  const sorted = [...numeric].sort((a, b) => a - b);
   const midIndex = Math.ceil((sorted.length - 1) / 2);
   return {
     median: sorted[midIndex],
@@ -27,9 +27,11 @@ export function computeMedian(votes: CardValue[]): MedianResult {
  * Normalize a label: trim whitespace, treat empty/whitespace-only as null,
  * enforce max length.
  */
+export const MAX_LABEL_LENGTH = 100;
+
 export function normalizeLabel(
   label: string,
-  maxLength = 100
+  maxLength = MAX_LABEL_LENGTH
 ): string | null {
   const trimmed = label.trim();
   if (trimmed.length === 0) return null;
