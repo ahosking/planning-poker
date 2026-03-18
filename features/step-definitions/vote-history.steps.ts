@@ -8,7 +8,7 @@ import type { DataTable } from "@cucumber/cucumber";
 Given(
   "a voting round has been completed with the label {string}",
   function (this: PlanningPokerWorld, label: string) {
-    (this.roomManager as any).setLabel(this.creatorSocketId, label);
+    this.roomManager.setLabel(this.creatorSocketId, label);
   }
 );
 
@@ -40,7 +40,7 @@ Given(
   "a new round is started with the label {string}",
   function (this: PlanningPokerWorld, label: string) {
     this.startNewRound();
-    (this.roomManager as any).setLabel(this.creatorSocketId, label);
+    this.roomManager.setLabel(this.creatorSocketId, label);
   }
 );
 
@@ -62,7 +62,8 @@ Given(
     assert.equal(labels.length, count, `Expected ${count} labels`);
 
     for (const label of labels) {
-      (this.roomManager as any).setLabel(this.creatorSocketId, label);
+      // Set label, vote, reveal, then start a new round (except after last)
+      this.roomManager.setLabel(this.creatorSocketId, label);
       this.castVotesForAll(5);
       this.currentState = this.roomManager.revealVotes(this.creatorSocketId)!;
 
@@ -71,17 +72,19 @@ Given(
       }
     }
 
-    this.history = (this.roomManager as any).getHistory(this.roomId);
+    this.history = this.roomManager.getHistory(this.roomId);
   }
 );
 
-// --- When step (shared across Given and When contexts) ---
+// --- Shared step (used as both Given and When across features) ---
 
+// Cucumber matches step text regardless of keyword, so we use a single definition.
+// "And the votes are revealed" (Given context) and "When the votes are revealed" both match.
 When(
   "the votes are revealed",
   function (this: PlanningPokerWorld) {
     this.currentState = this.roomManager.revealVotes(this.creatorSocketId)!;
-    this.history = (this.roomManager as any).getHistory(this.roomId);
+    this.history = this.roomManager.getHistory(this.roomId);
   }
 );
 
@@ -102,6 +105,7 @@ Then(
     assert.ok(entry, "No history entry found");
     assert.ok(entry.votes.length > 0, "History entry has no votes");
 
+    // Verify each participant who voted is represented
     for (const v of entry.votes) {
       assert.ok(v.participant, "Vote missing participant name");
       assert.ok(v.vote !== undefined, "Vote missing value");
@@ -198,6 +202,7 @@ Then(
   function (this: PlanningPokerWorld) {
     const entry = this.history[this.history.length - 1];
     assert.ok(entry, "No history entry found");
+    // With votes [?, 8, coffee], only numeric vote is 8 → median is 8
     const numericVotes = entry.votes
       .map((v) => v.vote)
       .filter((v): v is number => typeof v === "number");

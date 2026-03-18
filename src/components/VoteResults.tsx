@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { PokerCard } from "./PokerCard";
+import { computeMedian } from "../../server/votes";
 import type { ClientParticipant } from "../../server/types";
 import type { CardValue } from "../../server/types";
 
@@ -8,27 +9,17 @@ interface VoteResultsProps {
 }
 
 export function VoteResults({ participants }: VoteResultsProps) {
-  const numericVotes: number[] = [];
-  for (const p of participants) {
-    if (typeof p.vote === "number") numericVotes.push(p.vote);
-  }
-
-  let medianValue: CardValue;
-  let isConsensus = false;
-
-  if (numericVotes.length === 0) {
-    medianValue = "?";
-  } else {
-    const sorted = [...numericVotes].sort((a, b) => a - b);
-    // Upper-middle for even count, exact middle for odd
-    const midIndex = Math.ceil((sorted.length - 1) / 2);
-    medianValue = sorted[midIndex] as CardValue;
-    isConsensus = sorted.every((v) => v === sorted[0]) && sorted.length > 1;
-  }
+  const votes = participants
+    .map((p) => p.vote)
+    .filter((v): v is CardValue => v !== null);
+  const { median, consensus: isConsensus } = computeMedian(votes);
+  const medianValue: CardValue = median ?? "?";
 
   return (
     <motion.div
       className="flex flex-col items-center gap-3"
+      role="status"
+      aria-label={`Vote result: median is ${medianValue}${isConsensus ? ", consensus reached" : ""}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}

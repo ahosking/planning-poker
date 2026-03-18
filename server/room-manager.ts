@@ -5,7 +5,9 @@ import type {
   CardValue,
   ClientRoomState,
   ClientParticipant,
+  VoteHistoryEntry,
 } from "./types.js";
+import { computeMedian, normalizeLabel } from "./votes.js";
 
 const ROOM_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes of inactivity
 
@@ -36,6 +38,9 @@ export class RoomManager {
       phase: "voting",
       creatorId: socketId,
       lastActivity: Date.now(),
+      currentLabel: null,
+      history: [],
+      roundCounter: 0,
     };
 
     this.rooms.set(roomId, room);
@@ -57,7 +62,7 @@ export class RoomManager {
     const existing = room.participants.get(socketId);
     if (existing) {
       existing.name = name;
-      return this.sanitizeState(room);
+      return this.sanitizeState(room, { includeHistory: true });
     }
 
     // Leave any previous room first
@@ -81,7 +86,7 @@ export class RoomManager {
     room.participants.set(socketId, participant);
     this.socketToRoom.set(socketId, roomId);
 
-    return this.sanitizeState(room);
+    return this.sanitizeState(room, { includeHistory: true });
   }
 
   castVote(socketId: string, value: CardValue): ClientRoomState | null {
@@ -97,6 +102,17 @@ export class RoomManager {
     return this.sanitizeState(room);
   }
 
+  setLabel(socketId: string, label: string): ClientRoomState | null {
+    const room = this.getRoomBySocket(socketId);
+    if (!room) return null;
+    if (room.creatorId !== socketId) return null;
+
+    room.currentLabel = normalizeLabel(label);
+    room.lastActivity = Date.now();
+
+    return this.sanitizeState(room);
+  }
+
   revealVotes(socketId: string): ClientRoomState | null {
     const room = this.getRoomBySocket(socketId);
     if (!room) return null;
@@ -105,7 +121,30 @@ export class RoomManager {
     room.phase = "revealed";
     room.lastActivity = Date.now();
 
-    return this.sanitizeState(room);
+    // Snapshot the round into history
+    const votes = [...room.participants.values()]
+      .filter((p) => p.vote !== null)
+      .map((p) => ({ participant: p.name, vote: p.vote! }));
+
+    const { median, consensus } = computeMedian(votes.map((v) => v.vote));
+
+    room.roundCounter++;
+    room.history.unshift({
+      roundId: room.roundCounter,
+      label: room.currentLabel,
+      votes,
+      median,
+      consensus,
+      timestamp: Date.now(),
+    });
+
+    return this.sanitizeState(room, { includeHistory: true });
+  }
+
+  getHistory(roomId: string): VoteHistoryEntry[] {
+    const room = this.rooms.get(roomId);
+    if (!room) return [];
+    return room.history;
   }
 
   resetRound(socketId: string): ClientRoomState | null {
@@ -114,6 +153,7 @@ export class RoomManager {
     if (room.creatorId !== socketId) return null;
 
     room.phase = "voting";
+    room.currentLabel = null;
     room.lastActivity = Date.now();
 
     for (const participant of room.participants.values()) {
@@ -163,7 +203,7 @@ export class RoomManager {
   getClientState(roomId: string): ClientRoomState | null {
     const room = this.rooms.get(roomId);
     if (!room) return null;
-    return this.sanitizeState(room);
+    return this.sanitizeState(room, { includeHistory: true });
   }
 
   private getRoomBySocket(socketId: string): RoomState | null {
@@ -172,7 +212,10 @@ export class RoomManager {
     return this.rooms.get(roomId) ?? null;
   }
 
-  sanitizeState(room: RoomState): ClientRoomState {
+  sanitizeState(
+    room: RoomState,
+    options?: { includeHistory?: boolean }
+  ): ClientRoomState {
     const participants: ClientParticipant[] = [];
 
     for (const p of room.participants.values()) {
@@ -190,6 +233,8 @@ export class RoomManager {
       participants,
       phase: room.phase,
       creatorId: room.creatorId,
+      currentLabel: room.currentLabel,
+      history: options?.includeHistory ? room.history : [],
     };
   }
 

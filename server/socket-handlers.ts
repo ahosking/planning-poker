@@ -88,6 +88,25 @@ export function attachSocketIO(httpServer: HttpServer): SocketIOServer {
       }
     });
 
+    socket.on("set-round-label", ({ label }) => {
+      if (typeof label !== "string") {
+        socket.emit("error", "Label must be a string");
+        return;
+      }
+      if (label.length > 1000) {
+        socket.emit("error", "Label too long");
+        return;
+      }
+
+      const roomId = roomManager!.getRoomId(socket.id);
+      if (!roomId) return;
+
+      const state = roomManager!.setLabel(socket.id, label);
+      if (state) {
+        io.to(roomId).emit("room-state", state);
+      }
+    });
+
     socket.on("reset-round", () => {
       const roomId = roomManager!.getRoomId(socket.id);
       if (!roomId) return;
