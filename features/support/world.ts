@@ -1,28 +1,11 @@
 import { World, setWorldConstructor } from "@cucumber/cucumber";
 import { RoomManager } from "../../server/room-manager.js";
-import type { ClientRoomState, CardValue } from "../../server/types.js";
-
-/**
- * Represents a completed round snapshot stored in vote history.
- * Defines the contract that production code must fulfill.
- * Will be replaced with the real VoteHistoryEntry type once the server implements it.
- */
-export interface HistoryEntry {
-  label: string | null;
-  votes: Array<{ participant: string; vote: CardValue }>;
-  median: number | null;
-  consensus: boolean;
-  timestamp: number;
-}
-
-/**
- * Logical UI state model for testing vote-history-ui.feature.
- * Decoupled from React — tests behavioral rules, not DOM.
- */
-export interface UIState {
-  historyPanelVisible: boolean;
-  expandedEntries: Set<number>;
-}
+import { computeMedian } from "../../server/votes.js";
+import type {
+  ClientRoomState,
+  CardValue,
+  VoteHistoryEntry,
+} from "../../server/types.js";
 
 export class PlanningPokerWorld extends World {
   public roomManager!: RoomManager;
@@ -34,13 +17,13 @@ export class PlanningPokerWorld extends World {
   public creatorSocketId!: string;
   public activeSocketId!: string; // "current user" context
 
-  // Vote history — the feature being TDD'd
-  public history: HistoryEntry[] = [];
+  // Vote history
+  public history: VoteHistoryEntry[] = [];
 
   // UI state model for vote-history-ui.feature
-  public uiState: UIState = {
+  public uiState = {
     historyPanelVisible: false,
-    expandedEntries: new Set(),
+    expandedEntries: new Set<number>(),
   };
 
   // Error tracking
@@ -54,13 +37,9 @@ export class PlanningPokerWorld extends World {
     throw new Error(`Invalid vote value: ${raw}`);
   }
 
-  // Helper: compute median from numeric votes (upper-middle, matching app logic)
+  // Helper: compute median — delegates to shared utility
   computeMedian(votes: CardValue[]): number | null {
-    const numeric = votes.filter((v): v is number => typeof v === "number");
-    if (numeric.length === 0) return null;
-    const sorted = [...numeric].sort((a, b) => a - b);
-    const midIndex = Math.ceil((sorted.length - 1) / 2);
-    return sorted[midIndex];
+    return computeMedian(votes).median;
   }
 
   // Helper: add participants to the room
@@ -83,15 +62,10 @@ export class PlanningPokerWorld extends World {
     label: string | null,
     votes?: Array<{ participant: string; vote: CardValue }>
   ): void {
-    // Set label if provided — calls future setLabel() method
-    if (
-      label !== null &&
-      typeof (this.roomManager as any).setLabel === "function"
-    ) {
-      (this.roomManager as any).setLabel(this.creatorSocketId, label);
+    if (label !== null) {
+      this.roomManager.setLabel(this.creatorSocketId, label);
     }
 
-    // Cast votes
     if (votes) {
       for (const { participant, vote } of votes) {
         let socketId = this.participants.get(participant);
@@ -104,13 +78,8 @@ export class PlanningPokerWorld extends World {
       this.castVotesForAll();
     }
 
-    // Reveal
     this.currentState = this.roomManager.revealVotes(this.creatorSocketId)!;
-
-    // Capture history from room manager — calls future getHistory() method
-    if (typeof (this.roomManager as any).getHistory === "function") {
-      this.history = (this.roomManager as any).getHistory(this.roomId);
-    }
+    this.history = this.roomManager.getHistory(this.roomId);
   }
 
   // Helper: start a new round (reset)

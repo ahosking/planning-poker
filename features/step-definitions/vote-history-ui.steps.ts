@@ -7,6 +7,7 @@ import type { PlanningPokerWorld } from "../support/world.js";
 Given(
   "no voting rounds have been completed",
   function (this: PlanningPokerWorld) {
+    // Fresh room — no reveals have happened
     this.history = [];
     this.uiState.historyPanelVisible = false;
   }
@@ -50,6 +51,7 @@ Given(
 Given(
   "I join a new room",
   function (this: PlanningPokerWorld) {
+    // Create a fresh room — the new user's context
     const newSocketId = "socket-new-user";
     const newRoomId = this.roomManager.createRoom(newSocketId, "NewUser");
     this.roomId = newRoomId;
@@ -82,6 +84,7 @@ When(
   "a round is completed and votes are revealed",
   function (this: PlanningPokerWorld) {
     this.completeRound("First story");
+    // After first reveal, UI should show the history panel
     this.uiState.historyPanelVisible = this.history.length > 0;
   }
 );
@@ -89,6 +92,7 @@ When(
 When(
   "I click on a history entry",
   function (this: PlanningPokerWorld) {
+    // Toggle expand on the first entry
     this.uiState.expandedEntries.add(0);
   }
 );
@@ -96,6 +100,7 @@ When(
 When(
   "I click on the expanded history entry",
   function (this: PlanningPokerWorld) {
+    // Toggle collapse on the first entry
     this.uiState.expandedEntries.delete(0);
   }
 );
@@ -107,7 +112,8 @@ When(
     this.roomManager.joinRoom(this.roomId, newSocketId, "Newcomer");
     this.participants.set("Newcomer", newSocketId);
 
-    this.history = (this.roomManager as any).getHistory(this.roomId);
+    // New participant should receive the full history from the server
+    this.history = this.roomManager.getHistory(this.roomId);
   }
 );
 
@@ -142,6 +148,7 @@ Then(
       this.uiState.expandedEntries.has(0),
       "Entry 0 should be expanded"
     );
+    // Verify the expanded entry has vote data to display
     const entry = this.history[0];
     assert.ok(entry, "History entry should exist");
     assert.ok(entry.votes.length > 0, "Entry should have votes to display");
@@ -173,8 +180,15 @@ Then(
   "each collapsed entry should show the label and median",
   function (this: PlanningPokerWorld) {
     for (const entry of this.history) {
-      assert.ok(entry.label !== undefined, "Entry should have a label field");
-      assert.ok(entry.median !== undefined, "Entry should have a median field");
+      // Each entry should have a label (or null) and a computed median
+      assert.ok(
+        entry.label !== undefined,
+        "Entry should have a label field"
+      );
+      assert.ok(
+        entry.median !== undefined,
+        "Entry should have a median field"
+      );
     }
   }
 );
@@ -184,7 +198,10 @@ Then(
   function (this: PlanningPokerWorld, fallback: string) {
     const entry = this.history[this.history.length - 1];
     assert.ok(entry, "History entry should exist");
+    // Entry has no label — the UI should generate a fallback like "Round 1"
     assert.equal(entry.label, null, "Entry should have no label");
+    // The fallback identifier is a UI concern — verify the data supports it
+    // The entry's index + 1 should match the number in the fallback
     const expectedIndex = parseInt(fallback.replace("Round ", ""), 10);
     assert.equal(
       this.history.length,
@@ -204,6 +221,7 @@ Then(
 Then(
   "it should not contain entries from other rooms",
   function (this: PlanningPokerWorld) {
+    // History is scoped to roomId — a fresh room should have empty history
     assert.equal(this.history.length, 0);
   }
 );
