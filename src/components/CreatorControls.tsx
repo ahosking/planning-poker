@@ -15,7 +15,7 @@ export function CreatorControls({
   hasAnyVotes,
 }: CreatorControlsProps) {
   return (
-    <div className="flex items-center justify-center gap-3 py-4">
+    <div className="flex items-center justify-center gap-3 py-4" role="group" aria-label="Round controls">
       {phase === "voting" ? (
         <Button
           onClick={onReveal}
@@ -23,7 +23,7 @@ export function CreatorControls({
           size="lg"
           className="gap-2 text-base"
         >
-          <Eye className="w-5 h-5" />
+          <Eye className="w-5 h-5" aria-hidden="true" />
           Reveal Votes
         </Button>
       ) : (
@@ -33,7 +33,7 @@ export function CreatorControls({
           variant="secondary"
           className="gap-2 text-base"
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="w-5 h-5" aria-hidden="true" />
           New Round
         </Button>
       )}

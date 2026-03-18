@@ -29,12 +29,28 @@ export function PokerCard({
     lg: "w-24 h-36 text-3xl",
   };
 
+  const interactive = !!onClick;
+
   return (
     <motion.div
-      className="perspective-[600px] cursor-pointer"
+      className={cn("perspective-[600px]", interactive && "cursor-pointer")}
       onClick={onClick}
-      whileHover={onClick ? { y: -8, scale: 1.05 } : undefined}
-      whileTap={onClick ? { scale: 0.95 } : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      role={interactive ? "radio" : undefined}
+      aria-checked={interactive ? selected : undefined}
+      aria-label={interactive ? `Vote ${label}` : `Card ${label}`}
+      tabIndex={interactive ? 0 : undefined}
+      whileHover={interactive ? { y: -8, scale: 1.05 } : undefined}
+      whileTap={interactive ? { scale: 0.95 } : undefined}
       layout
     >
       <motion.div
@@ -48,6 +64,7 @@ export function PokerCard({
           damping: 20,
         }}
         style={{ transformStyle: "preserve-3d" }}
+        aria-hidden="true"
       >
         {/* Front face */}
         <div
