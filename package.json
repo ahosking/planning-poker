@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.server.json",
     "start": "node dist-server/index.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --import tsx/esm ./node_modules/.bin/cucumber-js",
+    "test:server": "node --import tsx/esm ./node_modules/.bin/cucumber-js --tags @server",
+    "test:ui": "node --import tsx/esm ./node_modules/.bin/cucumber-js --tags @ui"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -20,6 +23,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^12.7.0",
     "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.2.1",
     "@types/express": "^5.0.6",
