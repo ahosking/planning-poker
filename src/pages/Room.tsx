@@ -8,6 +8,8 @@ import { ParticipantGrid } from "../components/ParticipantGrid";
 import { CardHand } from "../components/CardHand";
 import { CreatorControls } from "../components/CreatorControls";
 import { VoteResults } from "../components/VoteResults";
+import { RoundLabel } from "../components/RoundLabel";
+import { VoteHistory } from "../components/VoteHistory";
 
 export function Room() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -25,6 +27,7 @@ export function Room() {
     castVote,
     revealVotes,
     resetRound,
+    setRoundLabel,
     socketId,
   } = useRoom(roomId, playerName);
 
@@ -44,13 +47,13 @@ export function Room() {
   // Loading / error states
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background" role="alert">
         <motion.div
           className="text-center space-y-4 p-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <div className="text-4xl">😕</div>
+          <div className="text-4xl" aria-hidden="true">😕</div>
           <h2 className="text-xl font-bold text-foreground">Oops!</h2>
           <p className="text-muted-foreground">{error}</p>
           <a href="/" className="text-primary hover:underline text-sm">
@@ -63,7 +66,7 @@ export function Room() {
 
   if (!connected || !roomState) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background" role="status" aria-label="Connecting">
         <motion.div
           className="text-center space-y-3"
           initial={{ opacity: 0 }}
@@ -71,6 +74,7 @@ export function Room() {
         >
           <motion.div
             className="text-4xl"
+            aria-hidden="true"
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
           >
@@ -93,7 +97,16 @@ export function Room() {
       />
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col">
+        {/* Round label */}
+        <div className="py-3 px-4">
+          <RoundLabel
+            currentLabel={roomState.currentLabel}
+            isCreator={isCreator}
+            onLabelChange={setRoundLabel}
+          />
+        </div>
+
         {/* Participant grid - center of the "table" */}
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-4xl space-y-6">
@@ -109,6 +122,13 @@ export function Room() {
             )}
           </div>
         </div>
+
+        {/* Vote history */}
+        {roomState.history.length > 0 && (
+          <div className="px-4 pb-4">
+            <VoteHistory history={roomState.history} />
+          </div>
+        )}
 
         {/* Creator controls */}
         {isCreator && (
@@ -131,7 +151,7 @@ export function Room() {
             />
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
