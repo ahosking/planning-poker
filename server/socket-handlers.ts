@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from "socket.io";
 import type { Server as HttpServer } from "http";
 import { RoomManager } from "./room-manager.js";
 import type { ServerToClientEvents, ClientToServerEvents } from "./types.js";
+import { MAX_LABEL_LENGTH } from "./votes.js";
 
 const VALID_CARD_VALUES = new Set([1, 2, 3, 5, 8, 13, 21, "?", "coffee"]);
 
@@ -93,7 +94,7 @@ export function attachSocketIO(httpServer: HttpServer): SocketIOServer {
         socket.emit("error", "Label must be a string");
         return;
       }
-      if (label.length > 1000) {
+      if (label.length > MAX_LABEL_LENGTH) {
         socket.emit("error", "Label too long");
         return;
       }

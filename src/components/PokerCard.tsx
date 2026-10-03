@@ -45,8 +45,8 @@ export function PokerCard({
             }
           : undefined
       }
-      role={interactive ? "radio" : undefined}
-      aria-checked={interactive ? selected : undefined}
+      role={interactive ? "option" : undefined}
+      aria-selected={interactive ? selected : undefined}
       aria-label={interactive ? `Vote ${label}` : `Card ${label}`}
       tabIndex={interactive ? 0 : undefined}
       whileHover={interactive ? { y: -8, scale: 1.05 } : undefined}

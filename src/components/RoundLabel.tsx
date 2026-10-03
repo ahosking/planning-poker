@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Tag } from "lucide-react";
 
 interface RoundLabelProps {
@@ -14,23 +14,37 @@ export function RoundLabel({
 }: RoundLabelProps) {
   const [localValue, setLocalValue] = useState(currentLabel ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingValueRef = useRef<string | null>(null);
+  const onLabelChangeRef = useRef(onLabelChange);
+  onLabelChangeRef.current = onLabelChange;
 
   // Sync from server when label changes externally (e.g. new round clears it)
   useEffect(() => {
     setLocalValue(currentLabel ?? "");
   }, [currentLabel]);
 
-  // Clean up pending debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+  const flush = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    if (pendingValueRef.current !== null) {
+      onLabelChangeRef.current(pendingValueRef.current);
+      pendingValueRef.current = null;
+    }
   }, []);
+
+  // Flush pending debounce on unmount so typed input isn't lost
+  useEffect(() => {
+    return flush;
+  }, [flush]);
 
   function handleChange(value: string) {
     setLocalValue(value);
+    pendingValueRef.current = value;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      pendingValueRef.current = null;
       onLabelChange(value);
     }, 300);
   }

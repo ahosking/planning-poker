@@ -57,7 +57,7 @@ function HistoryEntry({
       <button
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        aria-controls={`history-details-${entry.timestamp}`}
+        aria-controls={`history-details-${entry.roundId}`}
         className={cn(
           "w-full flex items-center gap-3 px-4 py-3 text-left",
           "hover:bg-muted/50 transition-colors",
@@ -94,7 +94,7 @@ function HistoryEntry({
       <AnimatePresence>
         {expanded && (
           <motion.div
-            id={`history-details-${entry.timestamp}`}
+            id={`history-details-${entry.roundId}`}
             role="region"
             aria-label={`Vote details for ${displayLabel}`}
             initial={{ height: 0, opacity: 0 }}
